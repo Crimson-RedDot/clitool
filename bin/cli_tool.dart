@@ -11,7 +11,7 @@ void main(List<String> arguments) {
   var argResults = parser.parse(arguments);
 
   if (argResults['help'] as bool || argResults['name'] == null) {
-    print('Usage: dart run my_cli_tool.dart -n <name>');
+    print('Usage: dart run cli_tool.dart -n <name>');
     print(parser.usage);
     exit(0);
   }
