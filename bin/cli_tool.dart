@@ -5,54 +5,62 @@ import 'package:path/path.dart' as path;
 void main(List<String> arguments) {
   final parser = ArgParser()
     ..addOption('name', abbr: 'n', help: 'Name of the feature to create')
+    ..addOption('path',
+        abbr: 'p',
+        help: 'Path where the files will be generated',
+        defaultsTo: '.')
     ..addFlag('help',
         abbr: 'h', negatable: false, help: 'Show usage information');
 
   var argResults = parser.parse(arguments);
 
   if (argResults['help'] as bool || argResults['name'] == null) {
-    print('Usage: dart run cli_tool.dart -n <name>');
+    print('Usage: dart run my_cli_tool.dart -n <name> -p <path>');
     print(parser.usage);
     exit(0);
   }
 
   final name = argResults['name'];
-  _createFeatureFiles(name);
+  final targetPath = argResults['path'];
+
+  _createFeatureFiles(name, targetPath);
 }
 
-void _createFeatureFiles(String name) {
+void _createFeatureFiles(String name, String targetPath) {
   final directoryName = name.toLowerCase();
 
-  // Create the folder
-  final dir = Directory(directoryName);
-  if (dir.existsSync()) {
-    print('Directory already exists!');
+  // Resolve the full path where the files will be created
+  final outputDir = Directory(path.join(targetPath, directoryName));
+
+  // Create the folder at the given path
+  if (outputDir.existsSync()) {
+    print('Directory already exists at the specified path!');
     exit(1);
   }
-  dir.createSync();
+  outputDir.createSync(recursive: true);
 
   // Create controller file
   final controllerFile =
-      File(path.join(directoryName, '${name}_controller.dart'));
+      File(path.join(outputDir.path, '${name}_controller.dart'));
   controllerFile.writeAsStringSync(_controllerTemplate(name));
 
   // Create data source file
   final dataSourceFile =
-      File(path.join(directoryName, '${name}_data_source.dart'));
+      File(path.join(outputDir.path, '${name}_data_source.dart'));
   dataSourceFile.writeAsStringSync(_dataSourceTemplate(name));
 
   // Create request model file
   final requestModelFile =
-      File(path.join(directoryName, '${name}_request.dart'));
+      File(path.join(outputDir.path, '${name}_request.dart'));
   requestModelFile.writeAsStringSync(_requestModelTemplate(name));
 
   // Create response model file
   final responseModelFile =
-      File(path.join(directoryName, '${name}_response.dart'));
+      File(path.join(outputDir.path, '${name}_response.dart'));
   responseModelFile.writeAsStringSync(_responseModelTemplate(name));
 
   print(
-      'Created ${name}_controller.dart, ${name}_data_source.dart, ${name}_request.dart, and ${name}_response.dart inside $directoryName/');
+      'Created ${name}_controller.dart, ${name}_data_source.dart, ${name}_request.dart, and ${name}_response.dart inside $targetPath/$directoryName/');
 }
 
 String _controllerTemplate(String name) {
@@ -72,11 +80,11 @@ class ${className}Controller extends StateNotifier<AsyncValue<${className}Respon
 
   ${className}Controller(this._ref) : super(AsyncData(${className}Response()));
 
-  Future<void> get${className}Info({required String userIdentity}) async {
+  Future<void> get$className({required ${className}Request ${lowerCamelCase}Request}) async {
     try {
       state = const AsyncLoading();
 
-      final response = await _ref.read(${lowerCamelCase}DataSourceProvider).get${className}Info(userIdentity);
+      final response = await _ref.read(${lowerCamelCase}DataSourceProvider).get${className}Info(${lowerCamelCase}Request);
 
       safeApiCall<${className}Response>(response, onSuccess: (response) {
         state = AsyncData(response!);
@@ -107,16 +115,16 @@ import 'package:red_cash_dfs_flutter/core/networking/base/base_result.dart';
 import 'package:red_cash_dfs_flutter/utils/api_urls.dart';
 
 abstract class ${className}DataSource {
-  Future<BaseResult<${className}Response>> get${className}Info(String userIdentity);
+  Future<BaseResult<${className}Response>> get${className}Info(${className}Request ${lowerCamelCase}Request);
 }
 
 class ${className}DataSourceImpl extends BaseDataSource implements ${className}DataSource {
   ${className}DataSourceImpl(super.dio);
 
   @override
-  Future<BaseResult<${className}Response>> get${className}Info(String userIdentity) {
+  Future<BaseResult<${className}Response>> get${className}Info(${className}Request ${lowerCamelCase}Request) {
     return getResult(
-      get(ApiUrls.${name}Info, params: {'userIdentity': userIdentity}),
+      get(ApiUrls.${lowerCamelCase}Api, params: ${lowerCamelCase}Request.toJson()),
       (response) => ${className}Response.fromJson(response),
     );
   }
@@ -133,13 +141,13 @@ String _requestModelTemplate(String name) {
   final className = _toPascalCase(name);
   return '''
 class ${className}Request {
-  final String userIdentity;
+  final String info;
 
-  ${className}Request({required this.userIdentity});
+  ${className}Request({required this.info});
 
   Map<String, dynamic> toJson() {
     return {
-      'userIdentity': userIdentity,
+      "info": info,
     };
   }
 }
