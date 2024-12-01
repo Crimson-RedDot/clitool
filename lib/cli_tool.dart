@@ -118,6 +118,7 @@ import 'package:dotpay/core/di/network_provider.dart';
 import 'package:dotpay/core/networking/base/base_data_source.dart';
 import 'package:dotpay/core/networking/base/base_result.dart';
 import '../model/${name}_response_model.dart';
+import '../model/${name}_request_model.dart';
 import 'package:dotpay/utils/api_urls.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
