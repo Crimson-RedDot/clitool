@@ -31,48 +31,55 @@ void _createFeatureFiles(String name, String targetPath) {
 
   // Resolve the full path where the files will be created
   final outputDir = Directory(path.join(targetPath, directoryName));
+  final apiDir = Directory(path.join(outputDir.path, 'api'));
+  final modelDir = Directory(path.join(outputDir.path, 'model'));
 
   // Create the folder at the given path
   if (outputDir.existsSync()) {
-    print('Directory already exists at the specified path!');
-    exit(1);
+    // print('Directory already exists at the specified path!');
+    // exit(1);
+  } else {
+    outputDir.createSync(recursive: true);
   }
-  outputDir.createSync(recursive: true);
+  apiDir.createSync();
+  modelDir.createSync();
 
   // Create controller file
   final controllerFile =
-      File(path.join(outputDir.path, '${name}_controller.dart'));
+      File(path.join(outputDir.path, 'api/${name}_controller.dart'));
   controllerFile.writeAsStringSync(_controllerTemplate(name));
 
   // Create data source file
   final dataSourceFile =
-      File(path.join(outputDir.path, '${name}_data_source.dart'));
+      File(path.join(outputDir.path, 'api/${name}_data_source.dart'));
   dataSourceFile.writeAsStringSync(_dataSourceTemplate(name));
 
   // Create request model file
   final requestModelFile =
-      File(path.join(outputDir.path, '${name}_request.dart'));
+      File(path.join(outputDir.path, 'model/${name}_request_model.dart'));
   requestModelFile.writeAsStringSync(_requestModelTemplate(name));
 
   // Create response model file
   final responseModelFile =
-      File(path.join(outputDir.path, '${name}_response.dart'));
+      File(path.join(outputDir.path, 'model/${name}_response_model.dart'));
   responseModelFile.writeAsStringSync(_responseModelTemplate(name));
 
   print(
-      'Created ${name}_controller.dart, ${name}_data_source.dart, ${name}_request.dart, and ${name}_response.dart inside $targetPath/$directoryName/');
+      'Created ${name}_controller.dart, ${name}_data_source.dart, ${name}_request_model.dart, and ${name}_response_model.dart inside $targetPath/$directoryName/');
 }
 
 String _controllerTemplate(String name) {
   final className = _toPascalCase(name);
   final lowerCamelCase = _toLowerCamelCase(name);
   return '''
+import 'package:dotpay/core/di/core_providers.dart';
+import 'package:dotpay/core/networking/error/failure.dart';
+import 'package:dotpay/core/networking/safe_api_call.dart';
+import '${name}_data_source.dart';
+import '../model/${name}_response_model.dart';
+import '../model/${name}_request_model.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:logging/logging.dart';
-import 'package:red_cash_dfs_flutter/module/$name/api/${name}_data_source.dart';
-import 'package:red_cash_dfs_flutter/module/$name/api/model/${name}_response.dart';
-import 'package:red_cash_dfs_flutter/core/networking/error/failure.dart';
-import 'package:red_cash_dfs_flutter/core/networking/safe_api_call.dart';
 
 class ${className}Controller extends StateNotifier<AsyncValue<${className}Response>> {
   Logger get log => Logger(runtimeType.toString());
@@ -107,12 +114,12 @@ String _dataSourceTemplate(String name) {
   final className = _toPascalCase(name);
   final lowerCamelCase = _toLowerCamelCase(name);
   return '''
+import 'package:dotpay/core/di/network_provider.dart';
+import 'package:dotpay/core/networking/base/base_data_source.dart';
+import 'package:dotpay/core/networking/base/base_result.dart';
+import '../model/${name}_response_model.dart';
+import 'package:dotpay/utils/api_urls.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:red_cash_dfs_flutter/module/$name/api/model/${name}_response.dart';
-import 'package:red_cash_dfs_flutter/core/di/network_provider.dart';
-import 'package:red_cash_dfs_flutter/core/networking/base/base_data_source.dart';
-import 'package:red_cash_dfs_flutter/core/networking/base/base_result.dart';
-import 'package:red_cash_dfs_flutter/utils/api_urls.dart';
 
 abstract class ${className}DataSource {
   Future<BaseResult<${className}Response>> get${className}Info(${className}Request ${lowerCamelCase}Request);
